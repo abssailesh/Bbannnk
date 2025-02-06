@@ -2,9 +2,84 @@ const Vendor = require('../models/vendor');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
+const crypto = require('crypto');
 const Transaction = require('../models/Transaction');
 
-// Vendor login
+let otpStore = {};  // Temporarily storing OTPs (use Redis/DB in production)
+
+// 🔹 Forgot Password (Generate OTP & Send Email)
+exports.resetPassword = async (req, res) => {
+  const { email } = req.body;
+  try {
+    const vendor = await Vendor.findOne({ email });
+    if (!vendor) return res.status(404).json({ message: 'Vendor not found' });
+
+    // Generate OTP
+    const otp = await createOtp();
+    otpStore[email] = otp; // Store OTP temporarily (Consider using Redis or DB for persistence)
+    console.log("OTP sent to vendor: ", otp);
+
+    // Send OTP email using nodemailer
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: "nevergiveupmrkboys@gmail.com",  // Email address
+        pass: "ogki qkbk ycuu bkth"            // Password (not recommended for production)
+      }
+    });
+
+    const mailOptions = {
+      to: vendor.email,
+      subject: 'Password Reset Request',
+      html: `<p>Your OTP to reset your password is: <strong>${otp}</strong></p>`
+    };
+
+    transporter.sendMail(mailOptions, (err, info) => {
+      if (err) {
+        console.error('Email sending error:', err);
+        return res.status(500).json({ message: 'Failed to send OTP email', error: err });
+      }
+      res.json({ message: 'OTP sent successfully. Please check your email.' });
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+// 🔹 Reset Password Using OTP (Validate OTP & Reset Password)
+exports.resetPasswordWithOtp = async (req, res) => {
+  const { email, otp, newPassword } = req.body; // Vendor provides email, OTP, and new password
+  try {
+    if (!otp || !newPassword || !email) {
+      return res.status(400).json({ message: 'OTP, email, and new password are required' });
+    }
+
+    // Validate OTP
+    if (otpStore[email] !== parseInt(otp)) {
+      return res.status(400).json({ message: 'Invalid OTP. Please try again.' });
+    }
+
+    // Find the vendor by email and reset the password
+    const vendor = await Vendor.findOne({ email });
+    if (!vendor) return res.status(404).json({ message: 'Vendor not found' });
+
+    // Hash the new password and update it
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    vendor.password = hashedPassword;
+    await vendor.save();
+
+    // Clear OTP after successful password reset
+    delete otpStore[email]; // Delete OTP after use
+
+    res.json({ message: 'Password reset successful' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+// 🔹 Vendor login
 exports.vendorLogin = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -26,13 +101,13 @@ exports.vendorLogin = async (req, res) => {
 
     const token = jwt.sign(
       { vendorId: vendor._id },
-      process.env.JWT_SECRET,
+      'your-jwt-secret', // Use your actual JWT secret here
       { expiresIn: '1h' } // Token expiration time
     );
 
     res.cookie('authToken', token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: false,  // Set to true if you are using HTTPS
       sameSite: 'strict',
       maxAge: 3600000, // 1 hour
     });
@@ -53,7 +128,7 @@ exports.vendorLogin = async (req, res) => {
   }
 };
 
-// Vendor registration
+// 🔹 Vendor registration
 exports.vendorRegister = async (req, res) => {
   try {
     const { email, password, name } = req.body;
@@ -91,92 +166,9 @@ exports.vendorRegister = async (req, res) => {
   }
 };
 
-const createOtp = async ()=>{
-  let otp = await Math.floor(1000 + Math.random() * 9000)
+const createOtp = async () => {
+  let otp = await Math.floor(1000 + Math.random() * 9000); // Generate a random 4-digit OTP
   return otp;
-}
-
-// 🔹 Forgot Password (Generate Reset Token & Send Email)
-exports.resetPassword = async (req, res) => {
-  const { email } = req.body;
-  try {
-    const vendor = await Vendor.findOne({ email });
-    if (!vendor) return res.status(404).json({ message: 'Vendor not found' });
-    // console.log(vendor.name)
-    // return
-
-    const resetToken = jwt.sign({ vendorId: vendor._id }, "jwtsecret", { expiresIn: '1h' });
-
-    // Send the reset token as a cookie
-    res.cookie('resetToken', resetToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      maxAge: 3600000, // 1 hour
-    });
-    
-    const otp = await createOtp()
-    console.log(otp)
-
-    const resetLink = `http://localhost:3000/reset-password?token=${resetToken}`;
-    
-    // Send reset email using nodemailer
-    const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user: "nevergiveupmrkboys@gmail.com",
-        pass: "ogki qkbk ycuu bkth"
-      }
-    });
-
-    const mailOptions = {
-      to: vendor.email,
-      subject: 'Password Reset Request',
-      html: `<p> OTP to reset your password : ${otp}`
-    };
-
-    transporter.sendMail(mailOptions, (err, info) => {
-      if (err) {
-        console.error('Email sending error:', err);
-        return res.status(500).json({ message: 'Failed to send email' });
-      }
-      res.json({ message: 'OTP sent successfully' });
-    });
-
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server error', error: error.message });
-  }
-};
-
-// 🔹 Reset Password with Token (Retrieve Token from Cookie)
-exports.resetPasswordWithToken = async (req, res) => {
-  const { newPassword } = req.body;
-  const { resetToken } = req.cookies; // Get the token from the cookie
-
-  try {
-    if (!resetToken || !newPassword) {
-      return res.status(400).json({ message: 'Token and new password are required' });
-    }
-
-    // Verify the reset token
-    const decoded = jwt.verify(resetToken, process.env.JWT_SECRET);
-
-    const vendor = await Vendor.findById(decoded.vendorId);
-    if (!vendor) return res.status(404).json({ message: 'Vendor not found' });
-
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
-    vendor.password = hashedPassword;
-    await vendor.save();
-
-    // Clear the resetToken cookie after successful password reset
-    res.clearCookie('resetToken');
-
-    res.json({ message: 'Password reset successful' });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server error', error: error.message });
-  }
 };
 
 // 🔹 Get Vendor Profile (Protected)

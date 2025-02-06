@@ -2,8 +2,8 @@ const express = require('express');
 const {
   vendorLogin,
   vendorRegister,
-  resetPassword,  // Forgot password handler
-  resetPasswordWithToken,  // Reset password with token handler
+  resetPassword,  // Forgot password handler (Send OTP)
+  resetPasswordWithOtp,  // Reset password using OTP
   generateApiKey,
   getVendorProfile,
   updateVendorProfile,
@@ -19,11 +19,11 @@ router.post('/register', vendorRegister);
 // Vendor login route
 router.post('/login', vendorLogin);
 
-// Forgot password (generate reset token)
-router.post('/reset-password', resetPassword);  // Forgot password route
+// Forgot password (send OTP to vendor's email)
+router.post('/reset-password', resetPassword);  // Forgot password route (Generate OTP)
 
-// Reset password (use token to reset)
-// router.post('/reset-password', resetPasswordWithToken);  // Reset password using token
+// Reset password using OTP
+router.post('/reset-password-with-otp', resetPasswordWithOtp);  // New route to reset password with OTP
 
 // Generate API key (Protected route)
 router.post('/generate-api-key', protect, generateApiKey);

@@ -17,8 +17,9 @@ const App = () => {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} /> {/* Add ForgotPassword route */}
-          <Route path="/reset-password/:token" element={<ResetPassword />} /> {/* Add ResetPassword route */}
+          <Route path="/forgot-password" element={<ForgotPassword />} /> {/* Forgot Password route */}
+          <Route path="/reset-password/:email" element={<ResetPassword />} /> {/* Reset Password route */}
+          
           {/* Protect profile route using PrivateRoute */}
           <Route path="/profile" element={<PrivateRoute><Profile /></PrivateRoute>} />
         </Routes>

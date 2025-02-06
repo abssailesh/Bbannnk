@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useParams, useNavigate } from 'react-router-dom';
 
 const ResetPassword = () => {
-  const { token } = useParams();
+  const { email } = useParams(); // Capture the email from URL
   const navigate = useNavigate();
+  const [otp, setOtp] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
@@ -12,10 +13,15 @@ const ResetPassword = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post(`http://localhost:5001/vendor/reset-password/${token}`, { newPassword });
+      const response = await axios.post('http://localhost:5001/api/vendor/reset-password-with-otp', {
+        otp,
+        email,
+        newPassword
+      });
+
       setMessage(response.data.message);
       setError('');
-      setTimeout(() => navigate('/login'), 2000);
+      setTimeout(() => navigate('/login'), 2000); // Redirect to login page after success
     } catch (err) {
       setError('Failed to reset password. Try again.');
     }
@@ -26,11 +32,22 @@ const ResetPassword = () => {
       <h2 className="text-center">Reset Password</h2>
       <form onSubmit={handleSubmit} className="shadow p-4 rounded">
         <div className="mb-3">
+          <label className="form-label">OTP</label>
+          <input
+            type="text"
+            className="form-control"
+            placeholder="Enter the OTP sent to your email"
+            value={otp}
+            onChange={(e) => setOtp(e.target.value)}
+            required
+          />
+        </div>
+        <div className="mb-3">
           <label className="form-label">New Password</label>
           <input
             type="password"
             className="form-control"
-            placeholder="Enter new password"
+            placeholder="Enter your new password"
             value={newPassword}
             onChange={(e) => setNewPassword(e.target.value)}
             required
