@@ -1,0 +1,15 @@
+@url = http://localhost:5001/api/vendor
+
+
+### get all users
+
+
+
+### reset password
+
+POST {{url}}/reset-password
+Content-Type: application/json
+
+{
+    "email": "iamabs0205@gmail.com"
+}

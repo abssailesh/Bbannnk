@@ -1,0 +1,42 @@
+/* src/App.css */
+
+/* General Layout */
+body {
+  background-color: #f8f9fa; /* Light gray background for the entire page */
+  font-family: 'Arial', sans-serif;
+}
+
+h2 {
+  margin-bottom: 20px;
+}
+
+/* Form Styling */
+form {
+  max-width: 500px;
+  margin: 0 auto;
+  padding: 20px;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Button Styles */
+button {
+  width: 100%;
+  padding: 10px;
+  background-color: #007bff; /* Bootstrap primary color */
+  border: none;
+  color: white;
+  font-size: 16px;
+  border-radius: 5px;
+}
+
+button:hover {
+  background-color: #0056b3; /* Darker shade for hover effect */
+}
+
+/* Error message */
+p {
+  color: red;
+  font-size: 14px;
+}

@@ -1,0 +1,23 @@
+/* src/index.css */
+
+/* Remove default margin and padding from body */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Global background color */
+body {
+  background-color: #f8f9fa; /* Light background for the whole page */
+}
+
+/* Basic styling for links */
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+a:hover {
+  color: #007bff;
+}
